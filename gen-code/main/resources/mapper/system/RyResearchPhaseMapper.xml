@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.RyResearchPhaseMapper">
+    
+    <resultMap type="RyResearchPhase" id="RyResearchPhaseResult">
+        <result property="phaseId"    column="phase_id"    />
+        <result property="projectId"    column="project_id"    />
+        <result property="phaseName"    column="phase_name"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectRyResearchPhaseVo">
+        select phase_id, project_id, phase_name, sort_order, end_time, create_by, create_time, update_by, update_time from ry_research_phase
+    </sql>
+
+    <select id="selectRyResearchPhaseList" parameterType="RyResearchPhase" resultMap="RyResearchPhaseResult">
+        <include refid="selectRyResearchPhaseVo"/>
+        <where>  
+            <if test="projectId != null "> and project_id = #{projectId}</if>
+            <if test="phaseName != null  and phaseName != ''"> and phase_name like concat('%', #{phaseName}, '%')</if>
+            <if test="sortOrder != null "> and sort_order = #{sortOrder}</if>
+            <if test="endTime != null "> and end_time = #{endTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectRyResearchPhaseByPhaseId" parameterType="Long" resultMap="RyResearchPhaseResult">
+        <include refid="selectRyResearchPhaseVo"/>
+        where phase_id = #{phaseId}
+    </select>
+
+    <insert id="insertRyResearchPhase" parameterType="RyResearchPhase" useGeneratedKeys="true" keyProperty="phaseId">
+        insert into ry_research_phase
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">project_id,</if>
+            <if test="phaseName != null and phaseName != ''">phase_name,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">#{projectId},</if>
+            <if test="phaseName != null and phaseName != ''">#{phaseName},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateRyResearchPhase" parameterType="RyResearchPhase">
+        update ry_research_phase
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="projectId != null">project_id = #{projectId},</if>
+            <if test="phaseName != null and phaseName != ''">phase_name = #{phaseName},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where phase_id = #{phaseId}
+    </update>
+
+    <delete id="deleteRyResearchPhaseByPhaseId" parameterType="Long">
+        delete from ry_research_phase where phase_id = #{phaseId}
+    </delete>
+
+    <delete id="deleteRyResearchPhaseByPhaseIds" parameterType="String">
+        delete from ry_research_phase where phase_id in 
+        <foreach item="phaseId" collection="array" open="(" separator="," close=")">
+            #{phaseId}
+        </foreach>
+    </delete>
+
+</mapper>
