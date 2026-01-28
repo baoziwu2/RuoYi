@@ -27,8 +27,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
  */
 @Controller
 @RequestMapping("/system/project")
-public class RyResearchProjectController extends BaseController
-{
+public class RyResearchProjectController extends BaseController {
     private String prefix = "system/project";
 
     @Autowired
@@ -36,8 +35,7 @@ public class RyResearchProjectController extends BaseController
 
     @RequiresPermissions("system:project:view")
     @GetMapping()
-    public String project()
-    {
+    public String project() {
         return prefix + "/project";
     }
 
@@ -47,8 +45,7 @@ public class RyResearchProjectController extends BaseController
     @RequiresPermissions("system:project:list")
     @PostMapping("/list")
     @ResponseBody
-    public TableDataInfo list(RyResearchProject ryResearchProject)
-    {
+    public TableDataInfo list(RyResearchProject ryResearchProject) {
         startPage();
         List<RyResearchProject> list = ryResearchProjectService.selectRyResearchProjectList(ryResearchProject);
         return getDataTable(list);
@@ -61,8 +58,7 @@ public class RyResearchProjectController extends BaseController
     @Log(title = "科研课题", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     @ResponseBody
-    public AjaxResult export(RyResearchProject ryResearchProject)
-    {
+    public AjaxResult export(RyResearchProject ryResearchProject) {
         List<RyResearchProject> list = ryResearchProjectService.selectRyResearchProjectList(ryResearchProject);
         ExcelUtil<RyResearchProject> util = new ExcelUtil<RyResearchProject>(RyResearchProject.class);
         return util.exportExcel(list, "科研课题数据");
@@ -73,8 +69,7 @@ public class RyResearchProjectController extends BaseController
      */
     @RequiresPermissions("system:project:add")
     @GetMapping("/add")
-    public String add()
-    {
+    public String add() {
         return prefix + "/add";
     }
 
@@ -85,9 +80,65 @@ public class RyResearchProjectController extends BaseController
     @Log(title = "科研课题", businessType = BusinessType.INSERT)
     @PostMapping("/add")
     @ResponseBody
-    public AjaxResult addSave(RyResearchProject ryResearchProject)
-    {
+    public AjaxResult addSave(RyResearchProject ryResearchProject) {
+        // 自动绑定当前登录用户为申请人
+        ryResearchProject.setApplicantId(getUserId());
         return toAjax(ryResearchProjectService.insertRyResearchProject(ryResearchProject));
+    }
+
+    /**
+     * 审批页面 (我的审批)
+     */
+    @RequiresPermissions("system:project:audit")
+    @GetMapping("/audit")
+    public String audit() {
+        return prefix + "/audit";
+    }
+
+    /**
+     * 查询待审批列表
+     */
+    @RequiresPermissions("system:project:audit")
+    @PostMapping("/listAudit")
+    @ResponseBody
+    public TableDataInfo listAudit(RyResearchProject ryResearchProject) {
+        ryResearchProject.setStatus("0"); // 强制只查待审批
+        startPage();
+        List<RyResearchProject> list = ryResearchProjectService.selectRyResearchProjectList(ryResearchProject);
+        return getDataTable(list);
+    }
+
+    /**
+     * 课题立项页面
+     */
+    @RequiresPermissions("system:project:setup")
+    @GetMapping("/setup")
+    public String setup() {
+        return prefix + "/setup";
+    }
+
+    /**
+     * 查询已立项列表
+     */
+    @RequiresPermissions("system:project:setup")
+    @PostMapping("/listSetup")
+    @ResponseBody
+    public TableDataInfo listSetup(RyResearchProject ryResearchProject) {
+        ryResearchProject.setStatus("1"); // 强制只查已立项
+        startPage();
+        List<RyResearchProject> list = ryResearchProjectService.selectRyResearchProjectList(ryResearchProject);
+        return getDataTable(list);
+    }
+
+    /**
+     * 审核状态修改 (同意/拒绝)
+     */
+    @RequiresPermissions("system:project:audit")
+    @Log(title = "科研课题审核", businessType = BusinessType.UPDATE)
+    @PostMapping("/changeStatus")
+    @ResponseBody
+    public AjaxResult changeStatus(RyResearchProject project) {
+        return toAjax(ryResearchProjectService.updateRyResearchProject(project));
     }
 
     /**
@@ -95,8 +146,7 @@ public class RyResearchProjectController extends BaseController
      */
     @RequiresPermissions("system:project:edit")
     @GetMapping("/edit/{projectId}")
-    public String edit(@PathVariable("projectId") Long projectId, ModelMap mmap)
-    {
+    public String edit(@PathVariable("projectId") Long projectId, ModelMap mmap) {
         RyResearchProject ryResearchProject = ryResearchProjectService.selectRyResearchProjectByProjectId(projectId);
         mmap.put("ryResearchProject", ryResearchProject);
         return prefix + "/edit";
@@ -109,8 +159,7 @@ public class RyResearchProjectController extends BaseController
     @Log(title = "科研课题", businessType = BusinessType.UPDATE)
     @PostMapping("/edit")
     @ResponseBody
-    public AjaxResult editSave(RyResearchProject ryResearchProject)
-    {
+    public AjaxResult editSave(RyResearchProject ryResearchProject) {
         return toAjax(ryResearchProjectService.updateRyResearchProject(ryResearchProject));
     }
 
@@ -119,10 +168,9 @@ public class RyResearchProjectController extends BaseController
      */
     @RequiresPermissions("system:project:remove")
     @Log(title = "科研课题", businessType = BusinessType.DELETE)
-    @PostMapping( "/remove")
+    @PostMapping("/remove")
     @ResponseBody
-    public AjaxResult remove(String ids)
-    {
+    public AjaxResult remove(String ids) {
         return toAjax(ryResearchProjectService.deleteRyResearchProjectByProjectIds(ids));
     }
 }

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.research.mapper.ResearchTaskMapper">
+    
+    <resultMap type="ResearchTask" id="ResearchTaskResult">
+        <id property="taskId"    column="task_id"    />
+        <result property="phaseId"    column="phase_id"    />
+        <result property="taskName"    column="task_name"    />
+        <result property="assignedUserId"    column="assigned_user_id"    />
+        <result property="status"    column="status"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="finishTime"    column="finish_time"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="assignedUserName" column="assigned_user_name" />
+        <result property="phaseName"    column="phase_name"    />
+        <result property="projectName"  column="project_name"  />
+    </resultMap>
+
+    <sql id="selectTaskVo">
+        select t.task_id, t.phase_id, t.task_name, t.assigned_user_id, t.status, t.end_time, t.finish_time, t.create_by, t.create_time, t.update_by, t.update_time, 
+        u.user_name as assigned_user_name,
+        p.phase_name,
+        rp.project_name
+        from ry_research_task t
+        left join sys_user u on t.assigned_user_id = u.user_id
+        left join ry_research_phase p on t.phase_id = p.phase_id
+        left join ry_research_project rp on p.project_id = rp.project_id
+    </sql>
+
+    <select id="selectTaskList" parameterType="ResearchTask" resultMap="ResearchTaskResult">
+        <include refid="selectTaskVo"/>
+        <where>  
+            <if test="phaseId != null "> and t.phase_id = #{phaseId}</if>
+            <if test="assignedUserId != null "> and t.assigned_user_id = #{assignedUserId}</if>
+            <if test="taskName != null  and taskName != ''"> and t.task_name like concat('%', #{taskName}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectTaskById" parameterType="Long" resultMap="ResearchTaskResult">
+        <include refid="selectTaskVo"/>
+        where t.task_id = #{taskId}
+    </select>
+        
+    <insert id="insertTask" parameterType="ResearchTask" useGeneratedKeys="true" keyProperty="taskId">
+        insert into ry_research_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="phaseId != null">phase_id,</if>
+            <if test="taskName != null and taskName != ''">task_name,</if>
+            <if test="assignedUserId != null">assigned_user_id,</if>
+            <if test="status != null">status,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="finishTime != null">finish_time,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="phaseId != null">#{phaseId},</if>
+            <if test="taskName != null and taskName != ''">#{taskName},</if>
+            <if test="assignedUserId != null">#{assignedUserId},</if>
+            <if test="status != null">#{status},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="finishTime != null">#{finishTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateTask" parameterType="ResearchTask">
+        update ry_research_task
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="taskName != null and taskName != ''">task_name = #{taskName},</if>
+            <if test="assignedUserId != null">assigned_user_id = #{assignedUserId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="finishTime != null">finish_time = #{finishTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where task_id = #{taskId}
+    </update>
+
+    <delete id="deleteTaskById" parameterType="Long">
+        delete from ry_research_task where task_id = #{taskId}
+    </delete>
+
+    <delete id="deleteTaskByIds" parameterType="String">
+        delete from ry_research_task where task_id in 
+        <foreach item="taskId" collection="array" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+    </delete>
+    
+</mapper>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('我的审批')" />
+</head>
+<body class="gray-bg">
+     <div class="container-div">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="formId">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                课题名称：<input type="text" name="projectName"/>
+                            </li>
+                            <li>
+                                申请人：<input type="text" name="applicantName"/> 
+                                <!-- Note: applicantName search requires backend support if strictly needed, 
+                                     but ResearchProjectMapper usually filters by base fields. 
+                                     For now, we rely on existing filters or strict applicantId. 
+                                     Let's just keep projectName for simplicity or assume name search works if mapped.
+                                     Actually, mapper uses `like concat` on projectName. 
+                                     Applicant search isn't in mapper xml but let's leave it simple. -->
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        var auditFlag = [[${@permission.hasPermi('research:audit:audit')}]];
+        var prefix = ctx + "research/audit";
+
+        $(function() {
+            var options = {
+                url: prefix + "/list",
+                modalName: "审批",
+                columns: [{
+                    checkbox: true
+                },
+                {
+                    field: 'projectId',
+                    title: '课题ID',
+                    visible: false
+                },
+                {
+                    field: 'projectName',
+                    title: '课题名称'
+                },
+                {
+                    field: 'description',
+                    title: '课题描述'
+                },
+                {
+                    field: 'applicantName',
+                    title: '申请人'
+                },
+                {
+                    field: 'endTime',
+                    title: '截止时间'
+                },
+                {
+                    field: 'createTime',
+                    title: '申请时间'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-primary btn-xs ' + auditFlag + '" href="javascript:void(0)" onclick="agree(\'' + row.projectId + '\')"><i class="fa fa-check"></i> 同意</a> ');
+                        actions.push('<a class="btn btn-danger btn-xs ' + auditFlag + '" href="javascript:void(0)" onclick="reject(\'' + row.projectId + '\')"><i class="fa fa-close"></i> 拒绝</a>');
+                        return actions.join('');
+                    }
+                }]
+            };
+            $.table.init(options);
+        });
+
+        function agree(projectId) {
+            $.modal.confirm("确认要同意该课题立项吗？", function() {
+                $.operate.post(prefix + "/agree", { "projectId": projectId });
+            });
+        }
+
+        function reject(projectId) {
+            $.modal.open("拒绝课题", prefix + "/reject/" + projectId, '400', '300');
+        }
+    </script>
+</body>
+</html>

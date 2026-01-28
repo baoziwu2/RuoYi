@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('课题立项配置')" />
+</head>
+<body class="gray-bg">
+     <div class="container-div">
+        <div class="row">
+            <div class="col-sm-12 search-collapse">
+                <form id="formId">
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                课题名称：<input type="text" name="projectName"/>
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Details Modal -->
+    <div class="modal inmodal fade" id="progressModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title">课题进度详情</h4>
+                </div>
+                <div class="modal-body">
+                    <div id="projectTreeContainer" style="max-height: 500px; overflow-y: auto;">
+                        <!-- Tree content will be rendered here -->
+                        <div class="text-center"><i class="fa fa-spinner fa-spin"></i> 加载中...</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        var editFlag = [[${@permission.hasPermi('research:audit:setup')}]];
+        var prefix = ctx + "research/project/setup";
+        var viewPrefix = ctx + "research/project";
+
+        $(function() {
+            var options = {
+                url: prefix + "/list",
+                modalName: "课题",
+                columns: [{
+                    checkbox: true
+                },
+                {
+                    field: 'projectId',
+                    title: '课题ID',
+                    visible: false
+                },
+                {
+                    field: 'projectName',
+                    title: '课题名称',
+                     formatter: function(value, row, index) {
+                         return '<a href="javascript:void(0)" onclick="showProgress(' + row.projectId + ')">' + value + ' <i class="fa fa-bar-chart"></i></a>';
+                    }
+                },
+                {
+                    field: 'description',
+                    title: '课题描述'
+                },
+                {
+                    field: 'applicantName',
+                    title: '申请人'
+                },
+                {
+                    field: 'endTime',
+                    title: '截止时间'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-info btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="openPhases(\'' + row.projectId + '\', \'' + row.projectName + '\')"><i class="fa fa-list"></i> 阶段管理</a> ');
+                        return actions.join('');
+                    }
+                }]
+            };
+            $.table.init(options);
+        });
+
+        function openPhases(projectId, projectName) {
+            var url = ctx + "research/phase?projectId=" + projectId;
+            $.modal.openTab("阶段管理 - " + projectName, url);
+        }
+
+        function showProgress(projectId) {
+             $('#progressModal').modal('show');
+             $('#projectTreeContainer').html('<div class="text-center"><i class="fa fa-spinner fa-spin"></i> 加载中...</div>');
+             
+             $.ajax({
+                 url: viewPrefix + "/tree/" + projectId,
+                 type: "GET",
+                 success: function(res) {
+                     if (res.code == 0) {
+                         renderProjectTree(res.data);
+                     } else {
+                         $('#projectTreeContainer').html('<div class="alert alert-danger">' + res.msg + '</div>');
+                     }
+                 },
+                 error: function() {
+                     $('#projectTreeContainer').html('<div class="alert alert-danger">无法加载进度信息</div>');
+                 }
+             });
+        }
+
+        function renderProjectTree(project) {
+             var isProjectGreen = true;
+             var phasesHtml = '';
+
+             if (project.phases && project.phases.length > 0) {
+                 $.each(project.phases, function(i, phase) {
+                     var isPhaseGreen = true;
+                     var tasksHtml = '';
+                     
+                     if (phase.tasks && phase.tasks.length > 0) {
+                         $.each(phase.tasks, function(j, task) {
+                             var isTaskGreen = task.status == '1';
+                             if (!isTaskGreen) isPhaseGreen = false;
+                             
+                             var taskIcon = isTaskGreen ? 'fa-check-circle text-success' : 'fa-circle-o text-muted';
+                             var taskColor = isTaskGreen ? 'color: green; font-weight: bold;' : 'color: #777;';
+                             
+                             tasksHtml += '<li class="list-group-item" style="border:0; padding: 5px 0 5px 30px;">' +
+                                          '<i class="fa ' + taskIcon + '"></i> ' + 
+                                          '<span style="' + taskColor + '">' + task.taskName + '</span>' + 
+                                          (isTaskGreen ? ' <small class="text-success">(' + task.assignedUserName + ' - 完成)</small>' : ' <small class="text-muted">(' + (task.assignedUserName || "未分配") + ')</small>') +
+                                          '</li>';
+                         });
+                     } else {
+                         isPhaseGreen = false; 
+                         tasksHtml = '<li class="list-group-item" style="border:0; padding: 5px 0 5px 30px;"><span class="text-muted">暂无任务</span></li>';
+                     }
+                     
+                     if (!isPhaseGreen) isProjectGreen = false;
+
+                     var phaseIcon = isPhaseGreen ? 'fa-check-square text-success' : 'fa-square-o text-muted';
+                     var phaseColor = isPhaseGreen ? 'color: green; font-weight: bold;' : 'color: #555;';
+
+                     phasesHtml += '<div class="panel panel-default" style="margin-bottom: 10px;">' + 
+                                   '<div class="panel-heading" style="background-color: #f9f9f9;">' + 
+                                   '<h5 class="panel-title" style="' + phaseColor + '">' + 
+                                   '<i class="fa ' + phaseIcon + '"></i> ' + phase.phaseName + 
+                                   '</h5></div>' + 
+                                   '<div class="panel-body" style="padding: 10px;">' + 
+                                   '<ul class="list-group" style="margin-bottom: 0;">' + tasksHtml + '</ul>' + 
+                                   '</div></div>';
+                 });
+             } else {
+                 isProjectGreen = false;
+                 phasesHtml = '<div class="alert alert-warning">该项目尚未设置阶段规划。</div>';
+             }
+
+             var projectIcon = isProjectGreen ? 'fa-flag-checkered text-success' : 'fa-flag-o text-muted';
+             var projectColor = isProjectGreen ? 'color: green; font-weight: bold; font-size: 18px;' : 'color: #333; font-size: 18px;';
+             
+             var html = '<div style="padding: 10px;">' + 
+                        '<div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">' + 
+                        '<span style="' + projectColor + '"><i class="fa ' + projectIcon + '"></i> ' + project.projectName + '</span>' + 
+                        (isProjectGreen ? ' <span class="label label-success">项目已完成</span>' : '') +
+                        '</div>' + 
+                        phasesHtml + 
+                        '</div>';
+                        
+             $('#projectTreeContainer').html(html);
+        }
+    </script>
+</body>
+</html>

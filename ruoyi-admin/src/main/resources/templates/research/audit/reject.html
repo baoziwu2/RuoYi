@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('拒绝课题')" />
+</head>
+<body class="white-bg">
+    <div class="wrapper wrapper-content animated fadeInRight ibox-content">
+        <form class="form-horizontal m" id="form-audit-reject">
+            <input name="projectId" th:value="${projectId}" type="hidden">
+            <div class="form-group">
+                <label class="col-sm-3 control-label is-required">拒绝原因：</label>
+                <div class="col-sm-8">
+                    <textarea name="remark" class="form-control" required></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script type="text/javascript">
+        var prefix = ctx + "research/audit"
+        $("#form-audit-reject").validate({
+            rules:{
+                remark:{
+                    required:true,
+                }
+            },
+            focusCleanup: true
+        });
+
+        function submitHandler() {
+            if ($.validate.form()) {
+                $.operate.save(prefix + "/reject", $('#form-audit-reject').serialize());
+            }
+        }
+    </script>
+</body>
+</html>

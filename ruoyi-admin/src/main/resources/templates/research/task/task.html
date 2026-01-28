@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('任务列表')" />
+</head>
+<body class="gray-bg">
+     <div class="container-div">
+        <div class="row">
+           <div class="col-sm-12 search-collapse">
+                <form id="formId">
+                    <input type="hidden" name="phaseId" th:value="${phaseId}"/>
+                    <div class="select-list">
+                        <ul>
+                            <li>
+                                任务名称：<input type="text" name="taskName"/>
+                            </li>
+                            <li th:if="${isSetup == false}">
+                                任务范围：
+                                <select name="isMyTask">
+                                    <option value="false">所有任务</option>
+                                    <option value="true">我的任务</option>
+                                </select>
+                            </li>
+                            <li>
+                                <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                            </li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+
+            <div class="btn-group-sm" id="toolbar" role="group">
+                <a class="btn btn-success" onclick="add()" shiro:hasPermission="research:audit:setup" th:if="${isSetup}">
+                    <i class="fa fa-plus"></i> 新增
+                </a>
+                <a class="btn btn-primary single disabled" onclick="$.operate.edit()" shiro:hasPermission="research:audit:setup">
+                    <i class="fa fa-edit"></i> 修改
+                </a>
+                <a class="btn btn-danger multiple disabled" onclick="$.operate.removeAll()" shiro:hasPermission="research:audit:setup">
+                    <i class="fa fa-remove"></i> 删除
+                </a>
+                <a class="btn btn-warning" onclick="closeItem()" th:if="${isSetup}">
+                    <i class="fa fa-reply-all"></i> 关闭
+                </a>
+            </div>
+            
+            <div class="col-sm-12 select-table table-striped">
+                <table id="bootstrap-table"></table>
+            </div>
+        </div>
+    </div>
+    <th:block th:include="include :: footer" />
+    <script th:inline="javascript">
+        var editFlag = [[${@permission.hasPermi('research:audit:setup')}]];
+        var removeFlag = [[${@permission.hasPermi('research:audit:setup')}]];
+        var prefix = ctx + "research/task";
+        var phaseId = [[${phaseId}]];
+        var isSetup = [[${isSetup}]];
+        var currentUserId = [[${userId}]];
+        var isAdmin = [[${isAdmin}]];
+
+        $(function() {
+            var columns = [{
+                    checkbox: true
+                },
+                {
+                    field: 'taskId',
+                    title: '任务ID',
+                    visible: false
+                }];
+            
+            if (isSetup == false) {
+                columns.push({
+                    field: 'projectName',
+                    title: '所属课题'
+                });
+                columns.push({
+                    field: 'phaseName',
+                    title: '所属阶段'
+                });
+            }
+
+            columns.push(
+                {
+                    field: 'taskName',
+                    title: '任务名称'
+                },
+                {
+                    field: 'assignedUserName',
+                    title: '执行人'
+                },
+                {
+                    field: 'status',
+                    title: '状态',
+                    formatter: function(value, row, index) {
+                        return value == '0' ? '进行中' : '已完成';
+                    }
+                },
+                {
+                    field: 'endTime',
+                    title: '截止时间',
+                    formatter: function(value, row, index) {
+                         // Simple date formatting
+                         if(value) return value.substring(0, 10);
+                         return "";
+                    }
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        // Setup Mode or Admin: Edit/Delete
+                        if (editFlag != 'hidden' && (isSetup || isAdmin)) {
+                            actions.push('<a class="btn btn-success btn-xs ' + editFlag + '" href="javascript:void(0)" onclick="$.operate.edit(\'' + row.taskId + '\')"><i class="fa fa-edit"></i>修改</a> ');
+                            actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="$.operate.remove(\'' + row.taskId + '\')"><i class="fa fa-remove"></i>删除</a> ');
+                        }
+                        // Hall Mode: Complete (Show for assignee OR Admin if admin wants to force complete)
+                        // User request was Modify/Delete, did not specify 'Complete' for admin but implicit is helpful. 
+                        // But strictly: "Admin visiting My Task should have modify/delete rights".
+                        if (isSetup == false) {
+                            if (row.status == '0' && (row.assignedUserId == currentUserId || isAdmin)) {
+                                actions.push('<a class="btn btn-primary btn-xs" href="javascript:void(0)" onclick="completeTask(\'' + row.taskId + '\')"><i class="fa fa-check"></i>完成</a> ');
+                            }
+                        }
+                        return actions.join('');
+                    }
+                });
+
+            var options = {
+                url: prefix + "/list",
+                createUrl: prefix + "/add/" + phaseId,
+                updateUrl: prefix + "/edit/{id}",
+                removeUrl: prefix + "/remove",
+                modalName: "任务",
+                columns: columns
+            };
+            $.table.init(options);
+        });
+        
+        function add() {
+            $.operate.add(phaseId);
+        }
+
+        function completeTask(taskId) {
+            $.modal.confirm("确认要完成该任务吗？", function() {
+                $.operate.post(prefix + "/complete", { "taskId": taskId });
+            });
+        }
+    </script>
+</body>
+</html>

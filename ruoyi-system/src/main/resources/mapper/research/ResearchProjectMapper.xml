@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.research.mapper.ResearchProjectMapper">
+    
+    <resultMap type="ResearchProject" id="ResearchProjectResult">
+        <id property="projectId"    column="project_id"    />
+        <result property="projectName"    column="project_name"    />
+        <result property="description"    column="description"    />
+        <result property="applicantId"    column="applicant_id"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="status"    column="status"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="applicantName"  column="applicant_name" />
+    </resultMap>
+
+    <resultMap id="ResearchProjectTreeResult" type="ResearchProject" extends="ResearchProjectResult">
+        <collection property="phases" ofType="ResearchPhase">
+            <id property="phaseId" column="phase_id"/>
+            <result property="phaseName" column="phase_name"/>
+            <result property="sortOrder" column="sort_order"/>
+            <result property="endTime" column="phase_end_time"/>
+            <collection property="tasks" ofType="ResearchTask">
+                <id property="taskId" column="task_id"/>
+                <result property="taskName" column="task_name"/>
+                <result property="assignedUserId" column="assigned_user_id"/>
+                <result property="assignedUserName" column="assigned_user_name"/>
+                <result property="status" column="task_status"/>
+                <result property="finishTime" column="finish_time"/>
+            </collection>
+        </collection>
+    </resultMap>
+
+    <sql id="selectProjectVo">
+        select p.project_id, p.project_name, p.description, p.applicant_id, p.end_time, p.status, p.remark, p.create_by, p.create_time, p.update_by, p.update_time, u.user_name as applicant_name
+        from ry_research_project p
+        left join sys_user u on p.applicant_id = u.user_id
+    </sql>
+
+    <select id="selectProjectList" parameterType="ResearchProject" resultMap="ResearchProjectResult">
+        <include refid="selectProjectVo"/>
+        <where>  
+            <if test="projectName != null  and projectName != ''"> and p.project_name like concat('%', #{projectName}, '%')</if>
+            <if test="status != null  and status != ''"> and p.status = #{status}</if>
+            <if test="applicantId != null"> and p.applicant_id = #{applicantId}</if>
+        </where>
+    </select>
+    
+    <select id="selectProjectById" parameterType="Long" resultMap="ResearchProjectResult">
+        <include refid="selectProjectVo"/>
+        where p.project_id = #{projectId}
+    </select>
+
+    <select id="selectProjectTreeById" parameterType="Long" resultMap="ResearchProjectTreeResult">
+        SELECT 
+            p.project_id, p.project_name, p.status, 
+            ph.phase_id, ph.phase_name, ph.sort_order, ph.end_time as phase_end_time,
+            t.task_id, t.task_name, t.assigned_user_id, t.status as task_status, t.finish_time,
+            u.user_name as assigned_user_name
+        FROM ry_research_project p
+        LEFT JOIN ry_research_phase ph ON p.project_id = ph.project_id
+        LEFT JOIN ry_research_task t ON ph.phase_id = t.phase_id
+        LEFT JOIN sys_user u ON t.assigned_user_id = u.user_id
+        WHERE p.project_id = #{projectId}
+        ORDER BY ph.sort_order, t.task_id
+    </select>
+        
+    <insert id="insertProject" parameterType="ResearchProject" useGeneratedKeys="true" keyProperty="projectId">
+        insert into ry_research_project
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectName != null and projectName != ''">project_name,</if>
+            <if test="description != null">description,</if>
+            <if test="applicantId != null">applicant_id,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectName != null and projectName != ''">#{projectName},</if>
+            <if test="description != null">#{description},</if>
+            <if test="applicantId != null">#{applicantId},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateProject" parameterType="ResearchProject">
+        update ry_research_project
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="projectName != null and projectName != ''">project_name = #{projectName},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="applicantId != null">applicant_id = #{applicantId},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where project_id = #{projectId}
+    </update>
+
+    <delete id="deleteProjectById" parameterType="Long">
+        delete from ry_research_project where project_id = #{projectId}
+    </delete>
+
+    <delete id="deleteProjectByIds" parameterType="String">
+        delete from ry_research_project where project_id in 
+        <foreach item="projectId" collection="array" open="(" separator="," close=")">
+            #{projectId}
+        </foreach>
+    </delete>
+    
+</mapper>
